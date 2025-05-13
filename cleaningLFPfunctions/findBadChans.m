@@ -1,8 +1,27 @@
 function outliers=findBadChans(data,freqRange,toplot)
-% Calculated bad channels based on power spectrum plot
-% data      | array size channel x time x trials
-% freqRange | [fMin fMax] vector to specify frequency range of search
-% toplot    | Optional marker for whether to visualize data or not
+% findBadChans  Detects noisy or invalid LFP channels based on spectral outliers.
+%
+%   outliers = findBadChans(data, freqRange)
+%   outliers = findBadChans(data, freqRange, toplot)
+%
+%   This function identifies bad LFP channels based on deviations in power spectrum
+%   within a specified frequency range. Channels with excessive spectral power are 
+%   marked as outliers, as are channels that contain only NaNs. It also handles
+%   bad trials and optionally plots spectral diagnostics.
+%
+%   Inputs:
+%     data       - [nChannels x nTimepoints x nTrials] array of LFP data
+%     freqRange  - [fMin fMax] vector specifying frequency band for outlier detection (e.g., [1 250])
+%     toplot     - (Optional) Boolean flag to visualize power spectra and detected outliers (default: false)
+%
+%   Output:
+%     outliers   - Indices of bad channels (includes NaN-only channels and spectral outliers)
+%
+%   Notes:
+%     - Channels containing only NaNs across all time/trials are flagged and temporarily replaced
+%       for spectral estimation.
+%     - Trials containing only NaNs across all channels are removed prior to analysis.
+%     - Iterative outlier removal is based on median filtering and per-channel spectral z-scores.
 if nargin<3
     toplot=0;
 end

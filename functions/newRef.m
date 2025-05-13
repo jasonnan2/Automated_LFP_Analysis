@@ -1,10 +1,32 @@
 function [referencedData,count] = newRef(sessionData,refType,chans)
-% Function to rereference epoched data
-
-%%% Inputs
-% sessionData  | 32 x time x trials
-% refType      | string: 'none','median','shank','closest','ClosestInShank'
-% chans        | Chan metadata
+% newRef  Re-references epoched LFP data using specified spatial strategy.
+%
+%   [referencedData, count] = newRef(sessionData, refType, chans)
+%
+%   This function applies re-referencing to LFP signals using various methods
+%   (e.g., global median, per-shank median, closest channel). It supports both
+%   2D and 3D input data and handles missing/bad channels robustly.
+%
+%   Inputs:
+%     sessionData - [nChannels x nTimepoints x nTrials] or [nChannels x nTimepoints] LFP data
+%     refType     - String specifying reference method:
+%                     'none'             - No re-referencing
+%                     'median'           - Global median reference
+%                     'shank'            - Median of channels within same shank
+%                     'closest'          - Closest good channel in space
+%                     'ClosestInShank'   - Closest good channel within the same shank
+%     chans       - Table with channel metadata, must include:
+%                     - grouping: shank/group ID
+%                     - 3D coordinates in columns 3:end (e.g., x, y, z)
+%
+%   Outputs:
+%     referencedData - Re-referenced data (same size as input sessionData)
+%     count          - Number of channels where fallback reference was used (e.g., global median)
+%
+%   Notes:
+%     - Input data is reshaped internally to 2D for processing, then restored to original shape.
+%     - Bad channels (all-NaN) are excluded from referencing targets.
+%     - For spatial methods, Euclidean distance is used to find nearest neighbors.
 
 count=0;
 if ndims(sessionData)>2
