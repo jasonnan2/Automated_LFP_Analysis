@@ -1,30 +1,46 @@
-function outliers=findBadChans(data,freqRange,toplot)
+function outliers=findBadChans(data,freqRange,toplot, fs)
 % findBadChans  Detects noisy or invalid LFP channels based on spectral outliers.
 %
 %   outliers = findBadChans(data, freqRange)
 %   outliers = findBadChans(data, freqRange, toplot)
+%   outliers = findBadChans(data, freqRange, toplot, fs)
 %
-%   This function identifies bad LFP channels based on deviations in power spectrum
-%   within a specified frequency range. Channels with excessive spectral power are 
-%   marked as outliers, as are channels that contain only NaNs. It also handles
-%   bad trials and optionally plots spectral diagnostics.
+%   -------------------------------------------------------------------------
+%   Inputs
+%   -------------------------------------------------------------------------
+%   data       : [nChannels × nTimepoints × nTrials]  Epoched LFP data.
+%   freqRange  : 1×2 vector [fMin fMax]  Frequency band for analysis (e.g., [1 250]).
+%   toplot     : (optional) Logical flag to plot PSDs & highlight outliers (default = false).
+%   fs         : (optional) Sampling rate in Hz for Welch PSD (default = 1000).
 %
-%   Inputs:
-%     data       - [nChannels x nTimepoints x nTrials] array of LFP data
-%     freqRange  - [fMin fMax] vector specifying frequency band for outlier detection (e.g., [1 250])
-%     toplot     - (Optional) Boolean flag to visualize power spectra and detected outliers (default: false)
+%   -------------------------------------------------------------------------
+%   Output
+%   -------------------------------------------------------------------------
+%   outliers   : Row vector of channel indices flagged as bad.
 %
-%   Output:
-%     outliers   - Indices of bad channels (includes NaN-only channels and spectral outliers)
+%   -------------------------------------------------------------------------
+%   Method
+%   -------------------------------------------------------------------------
+%   1) Flag channels that are entirely NaN and temporarily fill them with the
+%      median spectrum to keep Welch stable.
+%   2) Remove trials that are all NaN across channels.
+%   3) Flatten remaining trials to a long time-series per channel and compute
+%      Welch PSD (pwelch) with the user-supplied (or default) sampling rate.
+%   4) Restrict PSD to freqRange and iteratively mark a channel as bad if
+%      >30 % of its frequency bins are outliers (isoutlier) relative to the
+%      population median. Converge when no new outliers are found.
+%   5) Optionally plot PSDs, coloring bad channels red.
 %
-%   Notes:
-%     - Channels containing only NaNs across all time/trials are flagged and temporarily replaced
-%       for spectral estimation.
-%     - Trials containing only NaNs across all channels are removed prior to analysis.
-%     - Iterative outlier removal is based on median filtering and per-channel spectral z-scores.
-if nargin<3
-    toplot=0;
-end
+% -------------------------------------------------------------------------
+% Author: Your Name, 2025
+% -------------------------------------------------------------------------
+
+% ------------------ argument handling ------------------------------------
+if nargin <2  || isempty(freqRange), freqRange = [1 250];
+if nargin < 3 || isempty(toplot), toplot = false; end
+if nargin < 4 || isempty(fs),     fs     = 1000;  end
+% -------------------------------------------------------------------------
+
 badChans=[]; outliers=[]; cont=1; badTrials=[];
 %% find channels that are ALL nan
 badChans=find(sum(sum(isnan(data),2),3)>=size(data,2)*size(data,3)); 
@@ -40,7 +56,7 @@ data(:,:,badTrials)=[];
 long=reshape(data,size(data,1),[]); % flatten trials
 long(:,isnan(long(1,:)))=[];
 
-[pxx,f]=pwelch(long',[],[],[],1000);
+[pxx,f]=pwelch(long',[],[],[],fs);
 pxx=pow2db(pxx); % convert to dB
 
 [~ ,l1]=min(abs(f-freqRange(1)));
@@ -69,9 +85,9 @@ end
 if toplot
     color=repmat({'b'},32,1);
     color(outliers)={'r'};
-    plot(f,movmean(pxx,1000))
+    plot(f,movmean(pxx,fs))
     colororder(color)
-    xlim([0 250]) % for plotting
+    xlim(freqRange) % for plotting
 end
 outliers=[badChans' outliers];
 end

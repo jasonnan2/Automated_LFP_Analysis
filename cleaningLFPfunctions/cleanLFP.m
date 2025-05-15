@@ -1,47 +1,58 @@
-function [data] = cleanLFP(rawLFP,threshold, plotChans)
+function [data] = cleanLFP(rawLFP, threshold, plotChans, fs, freqRange)
 % cleanLFP  Cleans broadband noise from LFP recordings using power thresholding.
 %
 %   data = cleanLFP(rawLFP)
 %   data = cleanLFP(rawLFP, threshold)
 %   data = cleanLFP(rawLFP, threshold, plotChans)
+%   data = cleanLFP(rawLFP, threshold, plotChans, fs)
+%   data = cleanLFP(rawLFP, threshold, plotChans, fs, nfft)
+%   data = cleanLFP(rawLFP, threshold, plotChans, fs, nfft, freqRange)
 %
-%   This function removes broadband noise artifacts from local field potential (LFP)
-%   data by identifying time segments whose power in the 1–250 Hz range exceeds
-%   a specified threshold (in decibels).
+%   Removes broadband noise artifacts by nulling time bins whose average power
+%   within a specified frequency band exceeds a dB threshold.
 %
-%   Inputs:
-%     rawLFP     - [nChannels x nTimepoints] matrix of raw LFP signal
-%     threshold  - Scalar power threshold in dB for artifact detection (default: 10 dB)
-%     plotChans  - Boolean flag to plot cleaned vs. raw data per channel (default: false)
+%   ------------------------------------------------------------------------
+%   Inputs
+%   ------------------------------------------------------------------------
+%   rawLFP     : [nChannels × nTimepoints]  Raw LFP matrix.
+%   threshold  : (optional) dB threshold for artifact detection (default = 10).
+%   plotChans  : (optional) Logical flag to plot raw vs. cleaned traces (default = false).
+%   fs         : (optional) Sampling rate in Hz (default = 1000).
+%   nfft       : (optional) FFT length for Welch (default = largest power-of-2 ≤ fs/2).
+%   freqRange  : (optional) 1×2 vector [fMin fMax] for broadband power (default = [1 250] Hz).
 %
-%   Outputs:
-%     data       - Cleaned LFP data with broadband noise chunks set to NaN
+%   ------------------------------------------------------------------------
+%   Output
+%   ------------------------------------------------------------------------
+%   data       : Cleaned LFP matrix (same size as rawLFP) with noisy segments set to NaN.
 %
-%   Notes:
-%     - Power is computed in overlapping 30-second bins with 15-second hops.
-%     - Median DC offset is removed from each channel before noise detection.
-%     - Chunks with mean power above threshold across all channels are nulled.
-% Threshold is dB threshold, default is 10dB. Suggestion to visualize one
-% session (plotChans=1) to visually determine threshold (should be clear)
-if nargin<3
-    plotChans=0;
-end
-if isempty(threshold)
-    threshold = 10;
-end
+%   ------------------------------------------------------------------------
+%   Notes
+%   ------------------------------------------------------------------------
+%   • Power is computed in 30-s bins with 15-s hops (scaled by fs).  
+%   • Median DC offset is removed per channel.  
+%   • A bin is nulled if *all* channels exceed the dB threshold.  
+%
+
+% ------------------------- argument handling -----------------------------
+if nargin < 2 || isempty(threshold);  threshold  = 10;      end
+if nargin < 3 || isempty(plotChans);  plotChans  = false;   end
+if nargin < 4 || isempty(fs);         fs         = 1000;    end
+if nargin < 5 || isempty(freqRange);  freqRange  = [1 250]; end
+% -------------------------------------------------------------------------
 
 LFPm = rawLFP-nanmedian(rawLFP,2);
 % subtract any DC drift.
 data=LFPm;
 %%
-binSize = 30; binSize = round(binSize*1000);
-binHop = 15; binHop = round(binHop*1000);
+binSize = 30; binSize = round(binSize*fs);
+binHop = 15; binHop = round(binHop*fs);
 bins = [(1:binHop:(size(rawLFP,2)-binSize+1));(binSize:binHop:size(rawLFP,2))]';
 for i = 1:size(bins,1)
     chunk = data(:,bins(i,1):bins(i,2));
-    [pxx,f]=pwelch(chunk',[],[],[],1000);
+    [pxx,f]=pwelch(chunk',[],[],[],fs);
     pxx=pow2db(pxx);
-    [~ ,locs]=min(abs(f-[1 250]));
+    [~ ,locs]=min(abs(f-freqRange));
     power(:,i)=mean(pxx(locs(1):locs(2),:),1);
 end
 
