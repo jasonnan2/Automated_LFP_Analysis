@@ -2,7 +2,34 @@
 
 This package provides functions for cleaning and modular referencing local field potential (LFP) recordings.
 
-It is designed to work with both raw and epoched LFP data stored as 3D arrays (channels × time × trials) and supports common preprocessing operations such as broadband noise removal, bad trial/channel detection, and flexible re-referencing.
+Designed to work with both raw 2D array (channels x time) to clean broadband noise, then epoched LFP data 3D arrays (channels × time × trials) for channel and trial rejection. Also inlcludes a function for flexible re-referencing.
+
+<table>
+ 
+  <tr>
+    <th>cleanLFP(...)</th>
+    <th>badChans(...)</th>
+  </tr>
+  <tr>
+    <td>
+      <img src="https://github.com/jasonnan2/Automated_LFP_Analysis/blob/main/cleaningLFPfunctions/cleanLFP.jpg" alt="cleanLFP" width="447" height="346">
+    </td>
+    <td>
+      <img src="https://github.com/jasonnan2/Automated_LFP_Analysis/blob/main/cleaningLFPfunctions/badChans.png" alt="badChans" width="447" height="346">
+    </td>
+  </tr>
+  <tr>
+    <th colspan="2" style="text-align:center">badTrials(...)</th>
+  </tr>
+  <tr>
+    <td colspan="2" style="text-align:center">
+      <img src="https://github.com/jasonnan2/Automated_LFP_Analysis/blob/main/cleaningLFPfunctions/badTrials.png" alt="badTrials" >
+    </td>
+  </tr>
+</table>
+
+
+
 
 ## Table of Contents
 - [Installation](#installation)
