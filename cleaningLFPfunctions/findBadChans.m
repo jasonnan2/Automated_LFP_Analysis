@@ -32,8 +32,6 @@ function outliers=findBadChans(data,freqRange,toplot, fs)
 %   5) Optionally plot PSDs, coloring bad channels red.
 %
 % -------------------------------------------------------------------------
-% Author: Your Name, 2025
-% -------------------------------------------------------------------------
 
 % ------------------ argument handling ------------------------------------
 if nargin <2  || isempty(freqRange), freqRange = [1 250];
